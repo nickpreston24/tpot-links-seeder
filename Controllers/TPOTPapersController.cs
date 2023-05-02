@@ -12,10 +12,8 @@ using System.Linq;
 using System.Reflection;
 using NSpecifications;
 using System.Text.RegularExpressions;
-// using MySql.Data.MySqlClient;
 using MySqlConnector;
 using Insight.Database;
-
 
 namespace dirty_tpot_links_seeder.Controllers;
 
@@ -25,11 +23,6 @@ public class TPOTPaperController : ControllerBase
 {
     private static readonly IDictionary<Type, ICollection<PropertyInfo>> _propertyCache =
            new Dictionary<Type, ICollection<PropertyInfo>>();
-
-    private static readonly string[] Categories = new[]
-    {
-        "Faith", "Jesus Christ", "Holy Spirit", "Marriage", "Obedience"
-    };
 
     private readonly ILogger<TPOTPaperController> logger;
     private readonly IWebHostEnvironment env;
@@ -55,7 +48,13 @@ public class TPOTPaperController : ControllerBase
 
     private static Dictionary<int, string> patterns = new Dictionary<int, string>();
 
-    [HttpGet]
+    [HttpGet(nameof(Health))]
+    public IActionResult Health()
+    {
+        return Ok();
+    }
+
+    [HttpGet(nameof(CreatePapersFromMarkdown))]
     public async Task<TPOTPapersResult> CreatePapersFromMarkdown()
     {           
         patterns = new string [] {
@@ -249,7 +248,7 @@ public class TPOTPaperController : ControllerBase
         return response/*.Dump("RESPONSE")*/;
     }
 
-    [HttpPost]
+    [HttpPost(nameof(StoreNewPaper))]
     public async Task<IEnumerable<TPOTPaper>> StoreNewPaper([FromBody] TPOTPaper incoming_paper) {
 
         settings.Dump("current settings");

@@ -91,6 +91,54 @@ namespace CodeMechanic.Advanced.Extensions
             return lines.ReplaceAll(dict);
         }
 
+
+        public static List<T> Extract<T>(
+            this string text,
+            string delimiter = "",
+            params Expression<Func<T, object>>[] patterns
+        )
+        {
+            var options =
+                   RegexOptions.Compiled
+                   | RegexOptions.IgnoreCase
+                   | RegexOptions.ExplicitCapture
+                   | RegexOptions.Multiline
+                   | RegexOptions.IgnorePatternWhitespace;
+
+            var dictionary = patterns
+               .GetExpressionParts()
+               .ToDictionary(kv => kv.Key, kv => kv.Value);
+
+            //dictionary.Dump("patterns");
+            StringBuilder pattern_builder = new StringBuilder();
+
+            foreach (var kvp in dictionary)
+            {
+                string pattern = kvp.Value.ToString();
+                string propertyname = kvp.Key;
+
+                string named_group_pattern = @$"(?<{propertyname}>{pattern}){delimiter}"/*.Dump("named group")*/;
+
+                pattern_builder.Append(named_group_pattern);
+
+            }
+
+            string full_pattern = pattern_builder
+                .RemoveFromEnd(delimiter.Length)
+                .ToString()
+               /* .Dump("full pattern")*/;
+
+            Console.WriteLine(full_pattern);
+
+            var batch = text.Extract<T>(
+                full_pattern,
+                enforce_exact_match: false,
+                options: options);
+
+            return batch;
+        }
+
+        
         public static List<T> Extract<T>(
            this string text,
            string regex_pattern,

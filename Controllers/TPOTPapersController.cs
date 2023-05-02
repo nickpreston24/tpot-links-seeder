@@ -48,12 +48,6 @@ public class TPOTPaperController : ControllerBase
 
     private static Dictionary<int, string> patterns = new Dictionary<int, string>();
 
-    [HttpGet(nameof(Health))]
-    public IActionResult Health()
-    {
-        return Ok();
-    }
-
     [HttpGet(nameof(CreatePapersFromMarkdown))]
     public async Task<TPOTPapersResult> CreatePapersFromMarkdown()
     {           

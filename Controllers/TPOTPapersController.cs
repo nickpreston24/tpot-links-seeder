@@ -37,7 +37,7 @@ public class TPOTPaperController : ControllerBase
         _logger = logger;
         _env = env;
 
-        string BAR = Environment.GetEnvironmentVariable("FOO").Dump("bar?");
+        // string BAR = Environment.GetEnvironmentVariable("FOO").Dump("bar?");
     }
 
     private static Dictionary<int, string> patterns = new Dictionary<int, string>();

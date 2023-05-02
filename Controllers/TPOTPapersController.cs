@@ -27,23 +27,30 @@ public class TPOTPaperController : ControllerBase
         "Faith", "Jesus Christ", "Holy Spirit", "Marriage", "Obedience"
     };
 
-    private readonly ILogger<TPOTPaperController> _logger;
-    private readonly IWebHostEnvironment _env;
+    private readonly ILogger<TPOTPaperController> logger;
+    private readonly IWebHostEnvironment env;
+    private readonly TPOTSettings settings;
 
     public TPOTPaperController(
-        ILogger<TPOTPaperController> logger
-        , IWebHostEnvironment env)
+        ILogger<TPOTPaperController> logs
+        , IWebHostEnvironment environment_vars)
     {
-        _logger = logger;
-        _env = env;
+        logger = logs;
+        env = env;
 
-        // string BAR = Environment.GetEnvironmentVariable("FOO").Dump("bar?");
+        settings = new TPOTSettings()
+        .With(setting=> {
+            setting.Neo4jUri = "blarg";
+            setting.MySqlConnectionString = Environment.GetEnvironmentVariable("FOO");
+        })
+        .Dump("current settings");
+
     }
 
     private static Dictionary<int, string> patterns = new Dictionary<int, string>();
 
-    [HttpPost]
-    public async Task<TPOTPapersResult> CreatePaper([FromBody]TPOTPaper incoming_paper)
+    [HttpGet]
+    public async Task<TPOTPapersResult> CreatePapersFromMarkdown()
     {           
         patterns = new string [] {
             // """(id:\s*)?(?<id>\d+)\s*(title:\s*)?(?<title>(\w*\s*))?+\s*(slug:\s*)?(?<slug>[a-zA-Z-_\s]+)\s*(link:\s*)?(?<link>[:\/.a-zA-Z-_\s]+.htm)?\s*(type:\s*)?(?<type>[a-zA-Z-_\s]+)?\s*(status:.*)?\s*(date:.*)\s*(modified:.*)\s*(cover_image:.*)\s*(author:.*)\s*(tags:.*\s-\s*\d+)\s*(comment_status:.*)\s*(template:.*)\s*(meta:.*)\s*(custom:.*)\s*(excerpt:\s*)(?<excerpt>.*\s*)*?(---)?(?<markdown>(.*\s*)*)$""",
@@ -97,7 +104,7 @@ public class TPOTPaperController : ControllerBase
         """(?<label>^[a-zA-Z_\s]+):(?<value>.*\s*?)""";
         // """(?<label>^[a-zA-Z_]+:\s*)(?<value>[a-zA-Z:\/\.d\n-_\[\]\s]*?)(\s+)""";
 
-        string root_folder = Path.Combine(_env.ContentRootPath.GoUp(), "tpot_static_wip").Dump("root");
+        string root_folder = Path.Combine(env.ContentRootPath.GoUp(), "tpot_static_wip").Dump("root");
 
         var watch = new Stopwatch();
         watch.Start();
@@ -236,5 +243,23 @@ public class TPOTPaperController : ControllerBase
         return response/*.Dump("RESPONSE")*/;
     }
 
+
+    [HttpPost]
+    public async Task<IActionResult> StoreNewPaper([FromBody] TPOTPaper incoming_paper) {
+
+        // incoming_paper.Dump();
+        settings
+        .With(s=> s.MySqlConnectionString =  Environment.GetEnvironmentVariable("FOO"))
+        .Dump();
+
+        return Ok();
+    }
 }
 
+public class TPOTSettings
+{
+    public string MySqlConnectionString { get; set; } = string.Empty;
+    public string Neo4jUri { get; set; } = string.Empty;
+    public string Neo4jUser { get; set; } = string.Empty;
+    public string Neo4jPassword { get; set; } = string.Empty;
+}

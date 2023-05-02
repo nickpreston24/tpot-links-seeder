@@ -16,6 +16,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+DotEnv.Load();
+
 app.UseExceptionHandler(config =>
 {
     config.Run(async context =>

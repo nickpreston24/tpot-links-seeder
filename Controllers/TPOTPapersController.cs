@@ -12,6 +12,10 @@ using System.Linq;
 using System.Reflection;
 using NSpecifications;
 using System.Text.RegularExpressions;
+// using MySql.Data.MySqlClient;
+using MySqlConnector;
+using Insight.Database;
+
 
 namespace dirty_tpot_links_seeder.Controllers;
 
@@ -41,9 +45,11 @@ public class TPOTPaperController : ControllerBase
         settings = new TPOTSettings()
         .With(setting=> {
             setting.Neo4jUri = "blarg";
-            setting.MySqlConnectionString = Environment.GetEnvironmentVariable("FOO");
+            setting.Neo4jUser = "blarg";
+            setting.Neo4jPassword = "blarg";
+            setting.MySqlConnectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTIONSTRING");
         })
-        .Dump("current settings");
+        .Dump("current settings"); // doesn't work on startup.  Who knew?
 
     }
 
@@ -243,16 +249,31 @@ public class TPOTPaperController : ControllerBase
         return response/*.Dump("RESPONSE")*/;
     }
 
-
     [HttpPost]
-    public async Task<IActionResult> StoreNewPaper([FromBody] TPOTPaper incoming_paper) {
+    public async Task<IEnumerable<TPOTPaper>> StoreNewPaper([FromBody] TPOTPaper incoming_paper) {
 
-        // incoming_paper.Dump();
-        settings
-        .With(s=> s.MySqlConnectionString =  Environment.GetEnvironmentVariable("FOO"))
-        .Dump();
+        settings.Dump("current settings");
 
-        return Ok();
+        string connection_string = settings.MySqlConnectionString;
+        
+        using(MySqlConnection connection = new MySqlConnection(connection_string))
+        {
+            string query = """select * from railway.TPOTPapers;""";
+
+            var results = connection
+                .QuerySql<TPOTPaper>(query)
+                .ToMaybe();  // I like maybe.  So sue me.
+
+            return results
+                .Case(
+                    some: (papers)=>papers?.Dump("results"),
+                    none: ()=> 
+                    {
+                        "No results.  Sending back original paper".Dump();
+                        return incoming_paper.AsList();
+                    }
+                );
+        }
     }
 }
 

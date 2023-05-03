@@ -46,8 +46,6 @@ public class TPOTPaperController : ControllerBase
 
     }
 
-    private static Dictionary<int, string> patterns = new Dictionary<int, string>();
-
     [HttpGet(nameof(CreatePapersFromMarkdown))]
     public async Task<TPOTPapersResult> CreatePapersFromMarkdown()
     {           
@@ -61,7 +59,9 @@ public class TPOTPaperController : ControllerBase
         string hugo_paper_pattern = RegexPatterns.Hugos.Last().Value;
         string frontmatter_pair_pattern = RegexPatterns.FrontMatter;
 
-        string root_folder = Path.Combine(env.ContentRootPath.GoUp(), "tpot_static_wip").Dump("root");
+        string root_folder = Path.Combine(env.ContentRootPath
+            .GoUp(), "tpot_static_wip")
+            .Dump("root");
 
         var watch = new Stopwatch();
         watch.Start();
@@ -78,19 +78,14 @@ public class TPOTPaperController : ControllerBase
 
         var all_files = grepper.GetFileNames()/*.Dump("Files")*/;
 
-        // var nonames = all_files
-        //     .Where(fname => fname.Equals(string.Empty))
-        //     .ToList().Count
-        //     .Dump("# of files with no name");
-
         var all_papers = all_files
             .Select(file_path => new TPOTPaper()
             .With(p => {
                 p.FilePath = file_path;
-                p.RawText = System.IO.File.ReadAllText(file_path).Trim()
-                /*.Replace(@"\n", "\r\n")*/;
+                p.RawText = System.IO.File.ReadAllText(file_path)
+                    .Trim();
             }))
-            .Take(15)
+            // .Take(15)
             ;
 
         var paper_properties = _propertyCache
@@ -122,9 +117,6 @@ public class TPOTPaperController : ControllerBase
                 paper.Markdown = !string.IsNullOrWhiteSpace(hugo_paper?.RawMarkdown)
                                     ? hugo_paper?.RawMarkdown
                                     : "";
-                // paper.Dump();
-                // hugo_paper.Dump();
-
                 var pairs = 
                     string.IsNullOrWhiteSpace(paper.FrontMatter)
                     ? new Dictionary<string, string>()
@@ -187,15 +179,15 @@ public class TPOTPaperController : ControllerBase
             .Dump("bad egg");  
 
         var response = new TPOTPapersResult()
-        .With(res=>
-        {
-            res.Papers = results;
-            res.Elapsed = watch.Elapsed.ToString();
-            res.Count = results.Count;
-            res.valid_papers = passing.Count;
-            res.invalid_papers = non_passing.Count;
-            res.total_files_on_disk = all_files.ToList().Count;
-        });
+            .With(res=>
+            {
+                res.Papers = results;
+                res.Elapsed = watch.Elapsed.ToString();
+                res.Count = results.Count;
+                res.valid_papers = passing.Count;
+                res.invalid_papers = non_passing.Count;
+                res.total_files_on_disk = all_files.ToList().Count;
+            });
       
         return response/*.Dump("RESPONSE")*/;
     }
@@ -226,12 +218,4 @@ public class TPOTPaperController : ControllerBase
                 );
         }
     }
-}
-
-public class TPOTSettings
-{
-    public string MySqlConnectionString { get; set; } = string.Empty;
-    public string Neo4jUri { get; set; } = string.Empty;
-    public string Neo4jUser { get; set; } = string.Empty;
-    public string Neo4jPassword { get; set; } = string.Empty;
 }

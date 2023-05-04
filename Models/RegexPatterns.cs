@@ -2,9 +2,22 @@
 
 public class RegexPatterns
 {
+    // TODO: Move these to a special JSON API (Parsely)
 
-    public static string FrontMatter { get; set; } = """(?<label>^[a-zA-Z_\s]+):(?<value>.*\s*?)""";
+    // https://regex101.com/r/VvS66U/1
+    public readonly static Dictionary<int, string> FacebookComments = new string [] { 
+        """(class=\"(?<css_selector_see_more>x[\w\d{5}\s]+)\".*(See\s*more)<\/div>)|(<span\s*?class=\"(?<css_selector_replies>x[\w\d{5}\s]+))\"\s(dir="auto")?>(\d*\s*)(Replies)"""
+    }
+    .Select((s, index) => new { s, index })
+    .ToDictionary(x => x.index, x => x.s.Trim());
 
+    public readonly static Dictionary<int, string> FrontMatter = new string [] { 
+        """(?<label>^[a-zA-Z_\s]+):(?<value>.*\s*?)"""
+        , """(?<Left>\w+:)(?<Right>.*)"""
+    }
+    .Select((s, index) => new { s, index })
+    .ToDictionary(x => x.index, x => x.s.Trim());
+    
     public readonly static Dictionary<int, string> Hugos =   new string [] {
                 // """^(---)?(?<frontmatter>.*)(---)(?<rawmarkdown>.*)$"""
                 """(?<=(---))\s*(?<frontmatter>(([a-zA-Z_]+:\s*)(.*?)(\s+))*)(---)\s*(?<rawmarkdown>(.*\s*)*)$"""

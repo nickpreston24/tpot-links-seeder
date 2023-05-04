@@ -33,7 +33,7 @@ public class TPOTPaperController : ControllerBase
         , IWebHostEnvironment environment_vars)
     {
         logger = logs;
-        env = env;
+        env = environment_vars;
 
         settings = new TPOTSettings()
         .With(setting=> {
@@ -57,7 +57,7 @@ public class TPOTPaperController : ControllerBase
 
         string markdown_extraction_pattern = RegexPatterns.MarkdownExtractor.Last().Value;
         string hugo_paper_pattern = RegexPatterns.Hugos.Last().Value;
-        string frontmatter_pair_pattern = RegexPatterns.FrontMatter;
+        string frontmatter_pair_pattern = RegexPatterns.FrontMatter.Last().Value;
 
         string root_folder = Path.Combine(env.ContentRootPath
             .GoUp(), "tpot_static_wip")
@@ -85,7 +85,7 @@ public class TPOTPaperController : ControllerBase
                 p.RawText = System.IO.File.ReadAllText(file_path)
                     .Trim();
             }))
-            // .Take(15)
+            .Take(5)
             ;
 
         var paper_properties = _propertyCache

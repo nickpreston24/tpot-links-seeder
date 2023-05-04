@@ -46,6 +46,11 @@ public class TPOTPaperController : ControllerBase
 
     }
 
+    [HttpGet(nameof(ExtractCSSSelectorsFromHtml))]
+    public async Task<TPOTPapersResult> ExtractCSSSelectorsFromHtml() {
+        return Ok();
+    }
+
     [HttpGet(nameof(CreatePapersFromMarkdown))]
     public async Task<TPOTPapersResult> CreatePapersFromMarkdown()
     {           

@@ -13,7 +13,7 @@ public class RegexPatterns
 
     public readonly static Dictionary<int, string> FrontMatter = new string [] { 
         """(?<label>^[a-zA-Z_\s]+):(?<value>.*\s*?)"""
-        , """(?<Left>\w+:)(?<Right>.*)"""
+        , """(?<label>\w+:)(?<value>.*)"""
     }
     .Select((s, index) => new { s, index })
     .ToDictionary(x => x.index, x => x.s.Trim());

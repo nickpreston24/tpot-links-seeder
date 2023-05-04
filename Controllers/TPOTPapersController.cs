@@ -52,7 +52,7 @@ public class TPOTPaperController : ControllerBase
     }
 
     [HttpGet(nameof(CreatePapersFromMarkdown))]
-    public async Task<TPOTPapersResult> CreatePapersFromMarkdown()
+    public async Task<TPOTPapersResult> CreatePapersFromMarkdown(int limit = 15)
     {           
         // var options = RegexOptions.Compiled
         //             | RegexOptions.IgnoreCase
@@ -90,7 +90,7 @@ public class TPOTPaperController : ControllerBase
                 p.RawText = System.IO.File.ReadAllText(file_path)
                     .Trim();
             }))
-            .Take(5)
+            .Take(limit)
             ;
 
         var paper_properties = _propertyCache

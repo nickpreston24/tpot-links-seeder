@@ -23,3 +23,13 @@ values   (1, 2, 10, "blah", "blah", "blah",  "blah",  "blah",  "blah", "{}")
 select * from railway.TPOTPapers;
 
 
+
+drop table if exists railway.FacebookComments;
+CREATE TABLE railway.FacebookComments (
+    id int,
+    CssSelector TEXT,
+    RawHtml LONGTEXT,
+    RawJson JSON
+);
+
+

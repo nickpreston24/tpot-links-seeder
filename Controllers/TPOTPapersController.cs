@@ -47,8 +47,8 @@ public class TPOTPaperController : ControllerBase
     }
 
     [HttpGet(nameof(ExtractCSSSelectorsFromHtml))]
-    public async Task<TPOTPapersResult> ExtractCSSSelectorsFromHtml() {
-        return Ok();
+    public async Task<List<FacebookComment>> ExtractCSSSelectorsFromHtml() {
+        return new FacebookComment().AsList();
     }
 
     [HttpGet(nameof(CreatePapersFromMarkdown))]

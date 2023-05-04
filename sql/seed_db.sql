@@ -13,11 +13,11 @@ CREATE TABLE railway.TPOTPapers (
 );
 
 insert into railway.TPOTPapers 
-	values (1, 2, 10, "blah", "blah",  "blah",  "blah",  "blah", "{}")
-	 ,(1, 2, 10, "blah", "blah",  "blah",  "blah",  "blah", "{}")
-	 ,(1, 2, 10, "blah", "blah",  "blah",  "blah",  "blah", "{}")
-	 ,(1, 2, 10, "blah", "blah",  "blah",  "blah",  "blah", "{}")
-	 , (1, 2, 10, "blah", "blah",  "blah",  "blah",  "blah", "{}")
+values   (1, 2, 10, "blah", "blah", "blah",  "blah",  "blah",  "blah", "{}")
+        ,(1, 2, 10, "blah", "blah", "blah",  "blah",  "blah",  "blah", "{}")
+        ,(1, 2, 10, "blah", "blah", "blah",  "blah",  "blah",  "blah", "{}")
+        ,(1, 2, 10, "blah", "blah", "blah",  "blah",  "blah",  "blah", "{}")
+        ,(1, 2, 10, "blah", "blah", "blah",  "blah",  "blah",  "blah", "{}")
   ;
 
 select * from railway.TPOTPapers;

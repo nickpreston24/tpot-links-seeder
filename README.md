@@ -6,6 +6,8 @@ To install everything to run this API, run the following from GitBash, Bash or `
 
 `bash install-packages.sh`
 
+To ensure the most up to date packages, run [`nupu`](https://github.com/ThomasArdal/NuPU), which can be installed using the dotnet cli tool helper: `dotnet tool install --global NuPU`.
+
 Then run it in Hot Reload Mode by running `dotnet watch -p .`.  This is similar to `nodemon`, but much, much faster. :wink:
 
 Swagger will generate a test UI for you and will auto regenerate on changes.

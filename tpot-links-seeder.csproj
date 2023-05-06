@@ -4,7 +4,7 @@
     <TargetFramework>net7.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>dirty_tpot_links_seeder</RootNamespace>
+    <RootNamespace>tpot_links_seeder</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

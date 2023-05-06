@@ -1,4 +1,4 @@
-namespace dirty_tpot_links_seeder;
+namespace tpot_links_seeder;
 
 public interface ITPOTPaperRepository
 {

@@ -3,3 +3,4 @@ obj
 bin
 .env
 .idea/
+.old/

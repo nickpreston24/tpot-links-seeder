@@ -4,18 +4,20 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Collections.Generic;
 using System.IO;
-using CodeMechanic.Extensions;
 using CodeMechanic.Async;
-using CodeMechanic.FS;
-using CodeMechanic.Advanced.Extensions;
+using CodeMechanic.FileSystem;
+using CodeMechanic.Regex;
 using System.Linq;
 using System.Reflection;
 using NSpecifications;
 using System.Text.RegularExpressions;
+using CodeMechanic.Diagnostics;
+using CodeMechanic.Reflection;
+using CodeMechanic.Types;
 using MySqlConnector;
 using Insight.Database;
 
-namespace dirty_tpot_links_seeder.Controllers;
+namespace tpot_links_seeder.Controllers;
 
 [ApiController]
 [Route("[controller]")]
@@ -44,6 +46,11 @@ public class TPOTPaperController : ControllerBase
         })
         .Dump("current settings"); // doesn't work on startup.  Who knew?
 
+    }
+
+    [HttpGet]
+    public IActionResult Get() {
+        return Ok();
     }
 
     [HttpGet(nameof(ExtractCSSSelectorsFromHtml))]

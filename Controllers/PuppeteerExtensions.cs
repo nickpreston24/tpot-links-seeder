@@ -4,25 +4,25 @@ using PuppeteerSharp;
 
 namespace CodeMechanic.PuppeteerExtensions;
 
+/// <summary>
+/// Based on:
+/// https://www.puppeteersharp.com/examples/Page.WaitForSelectorAsync.Searching.html
+/// </summary>
 public static class PuppeteerExtensions
 {
-    public static async Task<object> GetPropertyFromElement(
-        this IBrowser browser
+    public static async Task<object> GetHtmlPropertyFromElement(
+        this IPage page
         , string element = "h1"
         , string html_property = "innerText"
     )
     {
-        using (var page = await browser.NewPageAsync())
-        {
-            await page.GoToAsync("https://www.hardkoded.com/blog/ui-testing-with-puppeteer-released");
-            var pageHeaderHandle = await page.QuerySelectorAsync(element);
-            var innerTextHandle = await pageHeaderHandle.GetPropertyAsync(html_property);
-            var inner_text = await innerTextHandle.JsonValueAsync();
+        var pageHeaderHandle = await page.QuerySelectorAsync(element);
+        var innerTextHandle = await pageHeaderHandle.GetPropertyAsync(html_property);
+        var property_found = await innerTextHandle.JsonValueAsync();
 
-            inner_text.Dump(html_property);
+        property_found.Dump(html_property);
 
-            return inner_text;
-        }
+        return property_found;
     }
 
     public static async Task<IEnumerable<string>> GetAllLinksFromPage(

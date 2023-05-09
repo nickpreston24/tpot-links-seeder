@@ -352,9 +352,23 @@ public partial class TPOTPaperController : ControllerBase
         {
             Headless = true
         };
-        var browser = await Puppeteer.LaunchAsync(options);
 
-        await browser.GetPropertyFromElement("h1");
+        using (var browser = await Puppeteer.LaunchAsync(options))
+        using (var page = await browser.NewPageAsync())
+        {
+            string div_contents = (await page.GetHtmlPropertyFromElement(element: "blah")).ToString();
+
+            var all_encoded_comment_classes = div_contents
+                .Extract<FacebookComment>(RegexPatterns.FacebookComments.First().Value);
+            
+            all_encoded_comment_classes.Dump("encoded comment selectors found");
+
+            // var parsed_comment_selector = ".devsite-suggest-all-results";
+            // await page.WaitForSelectorAsync(parsed_comment_selector);
+            // await page.ClickAsync(parsed_comment_selector);
+
+            // continue the operation
+        }
 
         return post;
     }

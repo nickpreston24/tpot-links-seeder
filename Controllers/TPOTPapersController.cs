@@ -16,6 +16,7 @@ using CodeMechanic.Reflection;
 using CodeMechanic.Types;
 using MySqlConnector;
 using Insight.Database;
+using PuppeteerSharp;
 
 namespace tpot_links_seeder.Controllers;
 
@@ -230,4 +231,66 @@ public class TPOTPaperController : ControllerBase
                 );
         }
     }
+
+    // [GeneratedRegex("")]
+    public class FacebookPost
+    {
+        public static FacebookPost CreateInstance(string url = "")
+        {
+            url.Dump();
+
+            var instance = url.Extract<FacebookPost>(FacebookPostPattern)
+                .SingleOrDefault()
+                .Dump("fb post");
+            return instance;
+        }
+
+        // https://regex101.com/r/vV12pT/1
+        public static string FacebookPostPattern { get; set; } = @"^https?:\/\/www\.facebook\.com\/(?<Name>\w+)(\/posts\/)(?<post_id>[\w\d]+)\?(?<comment_ids>.*)";
+
+        public string OutputPath => ToString();
+
+        public string Extension { get; set; } = ".png";
+        public string comment_ids { get; set; } = string.Empty;
+        public string post_id { get; set; } = string.Empty;
+        public string Name { get; set; }
+        
+        // https://www.facebook.com/officialbenshapiro/posts/pfbid0235H6HMsAdpGqULNzW4okjNxc5M31Fr6oof51GusMhMEtHq5tGMGoYdamG1JtHgbwl?comment_id=187601347521345&reply_comment_id=153781794119258&notif_id=1683167179141365&notif_t=comment_mention&ref=notif
+        
+        public override string ToString()
+        {
+            return $"{Name}_{post_id}.{Extension}";
+        }
+    }
+    
+    [HttpGet(nameof(TakeScreenshot))]
+    public async Task<FacebookPost> TakeScreenshot(
+        // string url = "http://www.google.com"
+        string url = "https://www.facebook.com/officialbenshapiro/posts/pfbid0235H6HMsAdpGqULNzW4okjNxc5M31Fr6oof51GusMhMEtHq5tGMGoYdamG1JtHgbwl?comment_id=187601347521345&reply_comment_id=153781794119258&notif_id=1683167179141365&notif_t=comment_mention&ref=notif"
+        , string save_folder = "screenshots")
+    {
+        string output_folder = $"./{save_folder}";
+        if (!Directory.Exists(output_folder))
+            Directory.CreateDirectory(output_folder);
+
+        var post = FacebookPost.CreateInstance(url).Dump("post");
+        
+        
+        string outputFile = "screenshots/screenie.png";
+        using var browserFetcher = new BrowserFetcher();
+        await browserFetcher.DownloadAsync(BrowserFetcher.DefaultChromiumRevision);
+        var browser = await Puppeteer.LaunchAsync(new LaunchOptions
+        {
+            Headless = true
+        });
+        var page = await browser.NewPageAsync();
+        await page.GoToAsync(url);
+        await page.ScreenshotAsync(outputFile);
+
+
+        return post;
+    }
+
+    
+    
 }

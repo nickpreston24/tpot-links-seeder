@@ -1,26 +1,29 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>tpot_links_seeder</RootNamespace>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>tpot_links_seeder</RootNamespace>
+        <NoWarn>
+            CS0414;CS8602;CS1998;CS0168;CS8605;CS8603;CS8625;CS8604;CS8600;CS8601;CS8620;CS8618;CS4014;CS8619;CS8765;CS0105;CS8767;CS0659;CS8619;CS0219;
+        </NoWarn>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="CodeMechanic.Diagnostics" Version="1.0.2" />
-    <PackageReference Include="CodeMechanic.Embeds" Version="1.0.0" />
-    <PackageReference Include="CodeMechanic.FileSystem" Version="1.0.3" />
-    <PackageReference Include="CodeMechanic.Reflection" Version="1.0.3" />
-    <PackageReference Include="CodeMechanic.Regex" Version="1.0.0" />
-    <PackageReference Include="CodeMechanic.Types" Version="1.0.6" />
-    <PackageReference Include="Insight.Database" Version="6.3.11" />
-    <PackageReference Include="MySqlConnector" Version="2.3.0-beta.2" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="NSpecifications" Version="1.1.0" />
-    <PackageReference Include="PuppeteerSharp" Version="10.0.0" />
-    <PackageReference Include="Sciensoft.Hateoas" Version="3.2.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="CodeMechanic.Diagnostics" Version="1.0.2" />
+        <PackageReference Include="CodeMechanic.Embeds" Version="1.0.0" />
+        <PackageReference Include="CodeMechanic.FileSystem" Version="1.0.3" />
+        <PackageReference Include="CodeMechanic.Reflection" Version="1.0.3" />
+        <PackageReference Include="CodeMechanic.Regex" Version="1.0.0" />
+        <PackageReference Include="CodeMechanic.Types" Version="1.0.6" />
+        <PackageReference Include="Insight.Database" Version="6.3.11" />
+        <PackageReference Include="MySqlConnector" Version="2.3.0-beta.2" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+        <PackageReference Include="NSpecifications" Version="1.1.0" />
+        <PackageReference Include="PuppeteerSharp" Version="10.0.0" />
+        <PackageReference Include="Sciensoft.Hateoas" Version="3.2.0" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+    </ItemGroup>
 
 </Project>

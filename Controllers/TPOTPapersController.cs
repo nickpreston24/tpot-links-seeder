@@ -17,15 +17,16 @@ using CodeMechanic.Types;
 using MySqlConnector;
 using Insight.Database;
 using PuppeteerSharp;
+using CodeMechanic.PuppeteerExtensions;
 
 namespace tpot_links_seeder.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class TPOTPaperController : ControllerBase
+public partial class TPOTPaperController : ControllerBase
 {
     private static readonly IDictionary<Type, ICollection<PropertyInfo>> _propertyCache =
-           new Dictionary<Type, ICollection<PropertyInfo>>();
+        new Dictionary<Type, ICollection<PropertyInfo>>();
 
     private readonly ILogger<TPOTPaperController> logger;
     private readonly IWebHostEnvironment env;
@@ -39,29 +40,31 @@ public class TPOTPaperController : ControllerBase
         env = environment_vars;
 
         settings = new TPOTSettings()
-        .With(setting=> {
-            setting.Neo4jUri = "blarg";
-            setting.Neo4jUser = "blarg";
-            setting.Neo4jPassword = "blarg";
-            setting.MySqlConnectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTIONSTRING");
-        })
-        .Dump("current settings"); // doesn't work on startup.  Who knew?
-
+            .With(setting =>
+            {
+                setting.Neo4jUri = "blarg";
+                setting.Neo4jUser = "blarg";
+                setting.Neo4jPassword = "blarg";
+                setting.MySqlConnectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTIONSTRING");
+            })
+            .Dump("current settings"); // doesn't work on startup.  Who knew?
     }
 
     [HttpGet]
-    public IActionResult Get() {
+    public IActionResult Get()
+    {
         return Ok();
     }
 
     [HttpGet(nameof(ExtractCSSSelectorsFromHtml))]
-    public async Task<List<FacebookComment>> ExtractCSSSelectorsFromHtml() {
+    public async Task<List<FacebookComment>> ExtractCSSSelectorsFromHtml()
+    {
         return new FacebookComment().AsList();
     }
 
     [HttpGet(nameof(CreatePapersFromMarkdown))]
     public async Task<TPOTPapersResult> CreatePapersFromMarkdown(int limit = 15)
-    {           
+    {
         // var options = RegexOptions.Compiled
         //             | RegexOptions.IgnoreCase
         //             | RegexOptions.ExplicitCapture
@@ -73,7 +76,7 @@ public class TPOTPaperController : ControllerBase
         string frontmatter_pair_pattern = RegexPatterns.FrontMatter.Last().Value;
 
         string root_folder = Path.Combine(env.ContentRootPath
-            .GoUp(), "tpot_static_wip")
+                .GoUp(), "tpot_static_wip")
             .Dump("root");
 
         var watch = new Stopwatch();
@@ -82,72 +85,76 @@ public class TPOTPaperController : ControllerBase
         var queue = new SerialQueue();
         var tasks = new List<Task<TPOTPaper>>();
 
-        var grepper = new Grepper ()
-            .With(grep => 
+        var grepper = new Grepper()
+            .With(grep =>
             {
                 grep.RootPath = root_folder;
                 grep.FileNamePattern = @".*\.md";
             });
 
-        var all_files = grepper.GetFileNames()/*.Dump("Files")*/;
+        var all_files = grepper.GetFileNames() /*.Dump("Files")*/;
 
         var all_papers = all_files
-            .Select(file_path => new TPOTPaper()
-            .With(p => {
-                p.FilePath = file_path;
-                p.RawText = System.IO.File.ReadAllText(file_path)
-                    .Trim();
-            }))
-            .Take(limit)
+                .Select(file_path => new TPOTPaper()
+                    .With(p =>
+                    {
+                        p.FilePath = file_path;
+                        p.RawText = System.IO.File.ReadAllText(file_path)
+                            .Trim();
+                    }))
+                .Take(limit)
             ;
 
         var paper_properties = _propertyCache
-                        .TryGetProperties<TPOTPaper>(true)
-                        .ToArray();
+            .TryGetProperties<TPOTPaper>(true)
+            .ToArray();
 
-        foreach (var paper in all_papers) {
-            tasks.Add(queue.Enqueue(async () => {
-
+        foreach (var paper in all_papers)
+        {
+            tasks.Add(queue.Enqueue(async () =>
+            {
                 HugoPaper hugo_paper = paper.RawText
-                    .Extract<HugoPaper>(hugo_paper_pattern)
-                    .FirstOrDefault()
-                    .ToMaybe()
-                    .Case(
-                        some: hugo => 
-                            hugo.With(h=>{
-                                // This fixes the pesky escaped newline literals.
-                                h.FrontMatter = Regex.Replace(h.FrontMatter, @"\r\n?|\n", Environment.NewLine).Trim();
-                                paper.Markdown = string.IsNullOrWhiteSpace(h.RawMarkdown)
-                                    ? h.RawMarkdown
-                                    : string.Empty;
-                            }), 
-                        none: () => new HugoPaper()
-                    )
+                        .Extract<HugoPaper>(hugo_paper_pattern)
+                        .FirstOrDefault()
+                        .ToMaybe()
+                        .Case(
+                            some: hugo =>
+                                hugo.With(h =>
+                                {
+                                    // This fixes the pesky escaped newline literals.
+                                    h.FrontMatter = Regex.Replace(h.FrontMatter, @"\r\n?|\n", Environment.NewLine)
+                                        .Trim();
+                                    paper.Markdown = string.IsNullOrWhiteSpace(h.RawMarkdown)
+                                        ? h.RawMarkdown
+                                        : string.Empty;
+                                }),
+                            none: () => new HugoPaper()
+                        )
                     ;
 
                 paper.FrontMatter = hugo_paper?.FrontMatter?.Trim();
 
                 paper.Markdown = !string.IsNullOrWhiteSpace(hugo_paper?.RawMarkdown)
-                                    ? hugo_paper?.RawMarkdown
-                                    : "";
-                var pairs = 
-                    string.IsNullOrWhiteSpace(paper.FrontMatter)
-                    ? new Dictionary<string, string>()
-                    : paper.FrontMatter
-                    // .Dump("raw frontmatter")
-                    .Extract<FrontmatterPair>(frontmatter_pair_pattern)
-                    .Dump("PAIRS")
-                    .ToDictionary(
-                        p=>p.Label,
-                        p=>p.Value
-                    )
+                    ? hugo_paper?.RawMarkdown
+                    : "";
+                var pairs =
+                        string.IsNullOrWhiteSpace(paper.FrontMatter)
+                            ? new Dictionary<string, string>()
+                            : paper.FrontMatter
+                                // .Dump("raw frontmatter")
+                                .Extract<FrontmatterPair>(frontmatter_pair_pattern)
+                                .Dump("PAIRS")
+                                .ToDictionary(
+                                    p => p.Label,
+                                    p => p.Value
+                                )
                     ;
 
                 paper.FrontmatterPairs = pairs;
 
                 var matching_props = paper_properties
-                    .Where(p=> pairs.Keys//.Dump("keys")
-                    .Contains(p.Name, StringComparer.OrdinalIgnoreCase));
+                    .Where(p => pairs.Keys //.Dump("keys")
+                        .Contains(p.Name, StringComparer.OrdinalIgnoreCase));
 
                 foreach (var prop in matching_props)
                 {
@@ -162,7 +169,7 @@ public class TPOTPaperController : ControllerBase
 
                     prop.SetValue(paper, safe_value, null);
                 }
-                    
+
                 return paper;
             }));
         }
@@ -170,29 +177,29 @@ public class TPOTPaperController : ControllerBase
         var results = (await Task.WhenAll(tasks)).ToList();
         // results.Dump("RESULTS");
 
-        var valid = new Spec<TPOTPaper>(paper => 
-            paper.id > 0
+        var valid = new Spec<TPOTPaper>(paper =>
+                paper.id > 0
             // && paper.Markdown.Length > 0
         );
 
         var invalid = !valid;
 
         var passing = results
-            .Where(valid)
-            .ToList()
+                .Where(valid)
+                .ToList()
             // .Dump("passing")
             ;
 
         var non_passing = results
             .Where(invalid)
-            .ToList();  
-        
+            .ToList();
+
         non_passing
             .FirstOrDefault()
-            .Dump("bad egg");  
+            .Dump("bad egg");
 
         var response = new TPOTPapersResult()
-            .With(res=>
+            .With(res =>
             {
                 res.Papers = results;
                 res.Elapsed = watch.Elapsed.ToString();
@@ -201,29 +208,29 @@ public class TPOTPaperController : ControllerBase
                 res.invalid_papers = non_passing.Count;
                 res.total_files_on_disk = all_files.ToList().Count;
             });
-      
-        return response/*.Dump("RESPONSE")*/;
+
+        return response /*.Dump("RESPONSE")*/;
     }
 
     [HttpPost(nameof(StoreNewPaper))]
-    public async Task<IEnumerable<TPOTPaper>> StoreNewPaper([FromBody] TPOTPaper incoming_paper) {
-
+    public async Task<IEnumerable<TPOTPaper>> StoreNewPaper([FromBody] TPOTPaper incoming_paper)
+    {
         settings.Dump("current settings");
 
         string connection_string = settings.MySqlConnectionString;
-        
-        using(MySqlConnection connection = new MySqlConnection(connection_string))
+
+        using (MySqlConnection connection = new MySqlConnection(connection_string))
         {
             string query = """select * from railway.TPOTPapers;""";
 
             var results = connection
                 .QuerySql<TPOTPaper>(query)
-                .ToMaybe();  // I like maybe.  So sue me.
+                .ToMaybe(); // I like maybe.  So sue me.
 
             return results
                 .Case(
-                    some: (papers)=>papers?.Dump("results"),
-                    none: ()=> 
+                    some: (papers) => papers?.Dump("results"),
+                    none: () =>
                     {
                         "No results.  Sending back original paper".Dump();
                         return incoming_paper.AsList();
@@ -237,8 +244,8 @@ public class TPOTPaperController : ControllerBase
     {
         public static FacebookPost CreateInstance(string url = "")
         {
-            url.Dump();
-
+            // url.Dump();
+            FacebookPostPattern.Dump("PATTERN");
             var instance = url.Extract<FacebookPost>(FacebookPostPattern)
                 .SingleOrDefault()
                 .Dump("fb post");
@@ -246,7 +253,8 @@ public class TPOTPaperController : ControllerBase
         }
 
         // https://regex101.com/r/vV12pT/1
-        public static string FacebookPostPattern { get; set; } = @"^https?:\/\/www\.facebook\.com\/(?<Name>\w+)(\/posts\/)(?<post_id>[\w\d]+)\?(?<comment_ids>.*)";
+        public const string FacebookPostPattern =
+            @"^https?:\/\/www\.facebook\.com\/(?<Name>\w+)(\/posts\/)(?<post_id>[\w\d]+)\?(?<comment_ids>.*)";
 
         public string OutputPath => ToString();
 
@@ -254,29 +262,30 @@ public class TPOTPaperController : ControllerBase
         public string comment_ids { get; set; } = string.Empty;
         public string post_id { get; set; } = string.Empty;
         public string Name { get; set; }
-        
+
         // https://www.facebook.com/officialbenshapiro/posts/pfbid0235H6HMsAdpGqULNzW4okjNxc5M31Fr6oof51GusMhMEtHq5tGMGoYdamG1JtHgbwl?comment_id=187601347521345&reply_comment_id=153781794119258&notif_id=1683167179141365&notif_t=comment_mention&ref=notif
-        
+
         public override string ToString()
         {
-            return $"{Name}_{post_id}.{Extension}";
+            return $"{Name}_{post_id}.{Extension ?? ".png"}";
         }
     }
-    
+
     [HttpGet(nameof(TakeScreenshot))]
     public async Task<FacebookPost> TakeScreenshot(
         // string url = "http://www.google.com"
-        string url = "https://www.facebook.com/officialbenshapiro/posts/pfbid0235H6HMsAdpGqULNzW4okjNxc5M31Fr6oof51GusMhMEtHq5tGMGoYdamG1JtHgbwl?comment_id=187601347521345&reply_comment_id=153781794119258&notif_id=1683167179141365&notif_t=comment_mention&ref=notif"
+        string url =
+            "https://www.facebook.com/officialbenshapiro/posts/pfbid0235H6HMsAdpGqULNzW4okjNxc5M31Fr6oof51GusMhMEtHq5tGMGoYdamG1JtHgbwl?comment_id=187601347521345&reply_comment_id=153781794119258&notif_id=1683167179141365&notif_t=comment_mention&ref=notif"
         , string save_folder = "screenshots")
     {
         string output_folder = $"./{save_folder}";
         if (!Directory.Exists(output_folder))
             Directory.CreateDirectory(output_folder);
 
-        var post = FacebookPost.CreateInstance(url).Dump("post");
-        
-        
-        string outputFile = "screenshots/screenie.png";
+        var post = FacebookPost.CreateInstance(url)
+            .Dump("post");
+
+        string outfile_path = $"screenshots/{post.OutputPath}";
         using var browserFetcher = new BrowserFetcher();
         await browserFetcher.DownloadAsync(BrowserFetcher.DefaultChromiumRevision);
         var browser = await Puppeteer.LaunchAsync(new LaunchOptions
@@ -285,12 +294,68 @@ public class TPOTPaperController : ControllerBase
         });
         var page = await browser.NewPageAsync();
         await page.GoToAsync(url);
-        await page.ScreenshotAsync(outputFile);
+        await page.ScreenshotAsync(outfile_path);
 
 
         return post;
     }
 
-    
-    
+
+    [HttpGet(nameof(SaveFullPageAsPDF))]
+    public async Task<FacebookPost> SaveFullPageAsPDF(
+        // string url = "http://www.google.com"
+        string url =
+            "https://www.facebook.com/officialbenshapiro/posts/pfbid0235H6HMsAdpGqULNzW4okjNxc5M31Fr6oof51GusMhMEtHq5tGMGoYdamG1JtHgbwl?comment_id=187601347521345&reply_comment_id=153781794119258&notif_id=1683167179141365&notif_t=comment_mention&ref=notif"
+        , string save_folder = "pdf")
+    {
+        string output_folder = $"./{save_folder}";
+        if (!Directory.Exists(output_folder))
+            Directory.CreateDirectory(output_folder);
+
+        var post = FacebookPost.CreateInstance(url)
+            .Dump("post")
+            .With(p => p.Extension = ".pdf");
+
+        string output_file_path = $"screenshots/{post.OutputPath}".Dump("saving as:");
+        using var browserFetcher = new BrowserFetcher();
+        await browserFetcher.DownloadAsync(BrowserFetcher.DefaultChromiumRevision);
+        var browser = await Puppeteer.LaunchAsync(new LaunchOptions
+        {
+            Headless = true
+        });
+        var page = await browser.NewPageAsync();
+        await page.GoToAsync("http://www.google.com");
+        await page.PdfAsync(output_file_path);
+
+        return post;
+    }
+
+    [HttpGet(nameof(SaveFullPageAsHTML))]
+    public async Task<FacebookPost> SaveFullPageAsHTML(
+        // string url = "http://www.google.com"
+        string url =
+            "https://www.facebook.com/officialbenshapiro/posts/pfbid0235H6HMsAdpGqULNzW4okjNxc5M31Fr6oof51GusMhMEtHq5tGMGoYdamG1JtHgbwl?comment_id=187601347521345&reply_comment_id=153781794119258&notif_id=1683167179141365&notif_t=comment_mention&ref=notif"
+        , string save_folder = "html")
+    {
+        string output_folder = $"./{save_folder}";
+        if (!Directory.Exists(output_folder))
+            Directory.CreateDirectory(output_folder);
+
+        var post = FacebookPost.CreateInstance(url)
+            .Dump("post")
+            .With(p => p.Extension = ".html");
+
+        string output_file_path = $"screenshots/{post.OutputPath}".Dump("saving as:");
+        using var browserFetcher = new BrowserFetcher();
+        await browserFetcher.DownloadAsync(BrowserFetcher.DefaultChromiumRevision);
+        var options = new LaunchOptions
+        {
+            Headless = true
+        };
+        var browser = await Puppeteer.LaunchAsync(options);
+
+        await browser.GetPropertyFromElement("h1");
+
+        return post;
+    }
 }

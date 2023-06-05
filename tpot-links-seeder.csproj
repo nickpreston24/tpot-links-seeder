@@ -13,9 +13,9 @@
     <ItemGroup>
         <PackageReference Include="CodeMechanic.Diagnostics" Version="1.0.2" />
         <PackageReference Include="CodeMechanic.Embeds" Version="1.0.0" />
-        <PackageReference Include="CodeMechanic.FileSystem" Version="1.0.3" />
+        <PackageReference Include="CodeMechanic.FileSystem" Version="1.0.4" />
         <PackageReference Include="CodeMechanic.Reflection" Version="1.0.3" />
-        <PackageReference Include="CodeMechanic.Regex" Version="1.0.0" />
+        <PackageReference Include="CodeMechanic.Regex" Version="1.0.1" />
         <PackageReference Include="CodeMechanic.Types" Version="1.0.6" />
         <PackageReference Include="Insight.Database" Version="6.3.11" />
         <PackageReference Include="MySqlConnector" Version="2.3.0-beta.2" />
@@ -24,6 +24,16 @@
         <PackageReference Include="PuppeteerSharp" Version="10.0.0" />
         <PackageReference Include="Sciensoft.Hateoas" Version="3.2.0" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="Neo4j.Driver">
+        <HintPath>..\..\..\..\.nuget\packages\neo4j.driver\5.8.0\lib\net6.0\Neo4j.Driver.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\neo4j-extensions\neo4j-extensions.csproj" />
     </ItemGroup>
 
 </Project>

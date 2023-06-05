@@ -4,7 +4,7 @@ namespace tpot_links_seeder;
 
 public class TPOTPapersResult
 {
-    public List<TPOTPaper> Papers { get; set; } = new List<TPOTPaper>();
+    public List<TPOTMarkdownPaper> Papers { get; set; } = new List<TPOTMarkdownPaper>();
     public Dictionary<string, string> Markdown { get; set; } = new Dictionary<string, string> ();
     public int Count { get; set; }
     public int valid_papers { get; set; }

@@ -1,0 +1,9 @@
+GET TPOTPaper
+
+###
+
+GET /TPOTPaper/CreatePapersFromMarkdown?limit=15
+
+###
+
+

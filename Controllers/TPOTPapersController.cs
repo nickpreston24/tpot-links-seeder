@@ -1,23 +1,21 @@
-using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Collections.Generic;
-using System.IO;
-using CodeMechanic.Async;
-using CodeMechanic.FileSystem;
-using CodeMechanic.Regex;
-using System.Linq;
 using System.Reflection;
-using NSpecifications;
 using System.Text.RegularExpressions;
+using CodeMechanic.Advanced.Regex;
+using CodeMechanic.Async;
 using CodeMechanic.Diagnostics;
+using CodeMechanic.FileSystem;
+using CodeMechanic.Neo4j.Extensions;
+using CodeMechanic.PuppeteerExtensions;
 using CodeMechanic.Reflection;
 using CodeMechanic.Types;
-using MySqlConnector;
 using Insight.Database;
+using Microsoft.AspNetCore.Mvc;
+using MySqlConnector;
+using Neo4j.Driver;
+using Newtonsoft.Json;
+using NSpecifications;
 using PuppeteerSharp;
-using CodeMechanic.PuppeteerExtensions;
 
 namespace tpot_links_seeder.Controllers;
 
@@ -31,11 +29,14 @@ public partial class TPOTPaperController : ControllerBase
     private readonly ILogger<TPOTPaperController> logger;
     private readonly IWebHostEnvironment env;
     private readonly TPOTSettings settings;
+    private readonly IDriver driver;
 
     public TPOTPaperController(
         ILogger<TPOTPaperController> logs
+        , IDriver driver
         , IWebHostEnvironment environment_vars)
     {
+        this.driver = driver;
         logger = logs;
         env = environment_vars;
 
@@ -50,20 +51,177 @@ public partial class TPOTPaperController : ControllerBase
             .Dump("current settings"); // doesn't work on startup.  Who knew?
     }
 
-    [HttpGet]
-    public IActionResult Get()
+    // [HttpGet]
+    // public IActionResult Get()
+    // {
+    //     return Ok();
+    // }
+
+    [HttpGet(nameof(GetCommentsFromLocalHtml))]
+    public async Task<List<FacebookComment>> GetCommentsFromLocalHtml()
     {
-        return Ok();
+        string root_folder = Path.Combine(env.ContentRootPath
+                , "Samples")
+            .Dump("root");
+
+        var queue = new SerialQueue();
+        var tasks = new List<Task<TPOTMarkdownPaper>>();
+
+        var grepper = new Grepper()
+            .With(grep =>
+            {
+                grep.RootPath = root_folder;
+                grep.FileNamePattern = @".*\.html";
+            });
+
+        var all_files = grepper
+            .GetFileNames()
+            .Dump("Files");
+
+        var first_file = all_files.Last();
+        string text = System.IO.File.ReadAllText(first_file);
+
+        text.Length.Dump("length of file");
+
+        var encoded_comments = text
+            .Extract<FacebookComment>(RegexPatterns.FacebookComments.First().Value);
+
+        encoded_comments.Dump("encoded comment classes");
+
+        // var all_papers = all_files
+        //         .Select(file_path => new TPOTPaper()
+        //             .With(p =>
+        //             {
+        //                 p.FilePath = file_path;
+        //                 p.RawText = System.IO.File.ReadAllText(file_path)
+        //                     .Trim();
+        //             }))
+        //         .Take(limit)
+        //     ;
+
+        return encoded_comments;
     }
 
-    [HttpGet(nameof(ExtractCSSSelectorsFromHtml))]
-    public async Task<List<FacebookComment>> ExtractCSSSelectorsFromHtml()
+    [HttpGet(nameof(CreatePapersFromLocalJson))]
+    public async Task<List<Paper>> CreatePapersFromLocalJson(
+        int limit = 1
+        , string json_root_folder
+            = "tpot_static_wip/cache"
+    )
     {
-        return new FacebookComment().AsList();
+        string root_folder = Path
+                .Combine(env.ContentRootPath.GoUp(), json_root_folder)
+                .Dump("starting at root folder")
+            ;
+
+        var watch = new Stopwatch();
+        watch.Start();
+
+        var queue = new SerialQueue();
+        var tasks = new List<Task<TPOTMarkdownPaper>>();
+
+        var grepper = new Grepper()
+            .With(grep =>
+            {
+                grep.RootPath = root_folder;
+                grep.FileNamePattern = @".*\.json";
+            });
+
+        var all_files = grepper.GetFileNames() /*.Dump("Files")*/;
+
+        var all_papers = all_files
+                .Select(file_path => new TPOTJsonPaper()
+                    .With(json_file =>
+                    {
+                        json_file.FilePath = file_path;
+                        json_file.RawText = System.IO.File.ReadAllText(file_path)
+                            .Trim();
+                    }))
+                .Take(limit)
+                .ToList()
+            ;
+
+        // var paper_properties = _propertyCache
+        //     .TryGetProperties<Paper>(true)
+        //     .ToArray();
+
+        var wordpressPapers = all_papers
+            .Take(limit)
+            .Aggregate(
+                new List<WordpressPaper>(),
+                (papers, next_paper) =>
+                {
+                    string json = next_paper.RawText;
+                    // Console.WriteLine(json);
+
+                    // TODO: Make this conditional between an array of objects and a single object.
+                    // var deserialized_set_of_papers = JsonConvert.DeserializeObject<List<Paper>>(json);
+                    // papers.AddRange(deserialized_set_of_papers);
+
+                    var single_paper_deserialized = JsonConvert.DeserializeObject<WordpressPaper>(json);
+                    papers.Add(single_paper_deserialized);
+                    return papers;
+                }
+            );
+
+        Console.WriteLine($"Uploading {wordpressPapers.Count} raw papers to Neo4j....");
+
+        var neo_papers = wordpressPapers
+            .Select(wp_paper => wp_paper
+                .Map(wp => new Paper
+                {
+                    Content = wp?.content?.rendered, Title = wp?.title?.rendered, Excerpt = wp?.excerpt?.rendered,
+                    Categories = string.Join(",", wp.categories), Slug = wp?.slug, Type = wp?.type, Url = wp?.link,
+                    AuthorId = wp.author, Id = wp.id.ToString(), last_modified_at_wp = wp.modified,
+                    created_at_wp = wp.date, created = DateTime.Now.ToString()
+                }));
+
+        neo_papers.Count().Dump("all neo papers");
+        var parameters = new
+        {
+            batch = neo_papers
+        };
+        //
+        // string query = """
+        //
+        // SET n = data[toString(id(n))]
+        // """;
+
+        // string query = """
+        //         WITH $batch as data, [k in keys($batch) | toInteger(k)] as ids
+        //         MATCH (n) WHERE id(n) IN ids      
+        //         UNWIND $batch AS map
+        //         MERGE (paper:Paper {paper} )
+        //         SET papers = map    
+        //     """;
+
+        string query = """
+            WITH $batch AS batch
+            UNWIND batch as ind
+            MERGE (n:Paper{Title: ind.Title})
+            SET n += ind        
+        """;
+
+        var created = await BulkCreateNodes<Paper>(query, parameters);
+
+        return created.ToList();
     }
 
-    [HttpGet(nameof(CreatePapersFromMarkdown))]
-    public async Task<TPOTPapersResult> CreatePapersFromMarkdown(int limit = 15)
+    private static void TestSingleFile(List<TPOTJsonPaper> all_papers)
+    {
+        string test_json = all_papers.FirstOrDefault()?.RawText;
+
+        all_papers.FirstOrDefault().FilePath.Dump("First file");
+
+        var test = all_papers.FirstOrDefault().RawText;
+        var res = JsonConvert.DeserializeObject<WordpressPaper>(test);
+        res.Dump("deserialized");
+
+        Console.WriteLine(test_json);
+    }
+
+    [HttpGet(nameof(CreatePapersFromLocalMarkdown))]
+    public async Task<TPOTPapersResult> CreatePapersFromLocalMarkdown(int limit = 15)
     {
         // var options = RegexOptions.Compiled
         //             | RegexOptions.IgnoreCase
@@ -83,7 +241,7 @@ public partial class TPOTPaperController : ControllerBase
         watch.Start();
 
         var queue = new SerialQueue();
-        var tasks = new List<Task<TPOTPaper>>();
+        var tasks = new List<Task<TPOTMarkdownPaper>>();
 
         var grepper = new Grepper()
             .With(grep =>
@@ -95,7 +253,7 @@ public partial class TPOTPaperController : ControllerBase
         var all_files = grepper.GetFileNames() /*.Dump("Files")*/;
 
         var all_papers = all_files
-                .Select(file_path => new TPOTPaper()
+                .Select(file_path => new TPOTMarkdownPaper()
                     .With(p =>
                     {
                         p.FilePath = file_path;
@@ -106,7 +264,7 @@ public partial class TPOTPaperController : ControllerBase
             ;
 
         var paper_properties = _propertyCache
-            .TryGetProperties<TPOTPaper>(true)
+            .TryGetProperties<TPOTMarkdownPaper>(true)
             .ToArray();
 
         foreach (var paper in all_papers)
@@ -177,7 +335,7 @@ public partial class TPOTPaperController : ControllerBase
         var results = (await Task.WhenAll(tasks)).ToList();
         // results.Dump("RESULTS");
 
-        var valid = new Spec<TPOTPaper>(paper =>
+        var valid = new Spec<TPOTMarkdownPaper>(paper =>
                 paper.id > 0
             // && paper.Markdown.Length > 0
         );
@@ -213,7 +371,7 @@ public partial class TPOTPaperController : ControllerBase
     }
 
     [HttpPost(nameof(StoreNewPaper))]
-    public async Task<IEnumerable<TPOTPaper>> StoreNewPaper([FromBody] TPOTPaper incoming_paper)
+    public async Task<IEnumerable<TPOTMarkdownPaper>> StoreNewPaper([FromBody] TPOTMarkdownPaper incomingMarkdownPaper)
     {
         settings.Dump("current settings");
 
@@ -224,7 +382,7 @@ public partial class TPOTPaperController : ControllerBase
             string query = """select * from railway.TPOTPapers;""";
 
             var results = connection
-                .QuerySql<TPOTPaper>(query)
+                .QuerySql<TPOTMarkdownPaper>(query)
                 .ToMaybe(); // I like maybe.  So sue me.
 
             return results
@@ -233,7 +391,7 @@ public partial class TPOTPaperController : ControllerBase
                     none: () =>
                     {
                         "No results.  Sending back original paper".Dump();
-                        return incoming_paper.AsList();
+                        return incomingMarkdownPaper.AsList();
                     }
                 );
         }
@@ -335,6 +493,7 @@ public partial class TPOTPaperController : ControllerBase
         // string url = "http://www.google.com"
         string url =
             "https://www.facebook.com/officialbenshapiro/posts/pfbid0235H6HMsAdpGqULNzW4okjNxc5M31Fr6oof51GusMhMEtHq5tGMGoYdamG1JtHgbwl?comment_id=187601347521345&reply_comment_id=153781794119258&notif_id=1683167179141365&notif_t=comment_mention&ref=notif"
+        // https://www.facebook.com/officialbenshapiro/posts/pfbid0235H6HMsAdpGqULNzW4okjNxc5M31Fr6oof51GusMhMEtHq5tGMGoYdamG1JtHgbwl?comment_id=187601347521345&reply_comment_id=153781794119258&notif_id=1683167179141365&notif_t=comment_mention&ref=notif
         , string save_folder = "html")
     {
         string output_folder = $"./{save_folder}";
@@ -360,7 +519,7 @@ public partial class TPOTPaperController : ControllerBase
 
             var all_encoded_comment_classes = div_contents
                 .Extract<FacebookComment>(RegexPatterns.FacebookComments.First().Value);
-            
+
             all_encoded_comment_classes.Dump("encoded comment selectors found");
 
             // var parsed_comment_selector = ".devsite-suggest-all-results";
@@ -371,5 +530,44 @@ public partial class TPOTPaperController : ControllerBase
         }
 
         return post;
+    }
+
+    /// <summary>
+    /// TODO: Move this to CodeMechanic!
+    /// </summary>
+    private async Task<IList<T>> BulkCreateNodes<T>(
+        string query
+        , object parameters = null
+        , Func<IRecord, T> mapper = null
+    )
+        where T : class, new()
+    {
+        if (parameters == null)
+            throw new ArgumentNullException(nameof(parameters));
+
+        await using var session = driver.AsyncSession();
+
+        try
+        {
+            var results = await session.ExecuteWriteAsync(async tx =>
+            {
+                // var _ = await tx.RunAsync(batch_command, null);
+                var result = await tx.RunAsync(query, parameters);
+                return await result.ToListAsync<T>(record => record.MapTo<T>());
+            });
+
+            return results;
+        }
+
+        // Capture any errors along with the query and data for traceability
+        catch (Neo4jException ex)
+        {
+            Console.WriteLine($"{query} - {ex}");
+            throw;
+        }
+        finally
+        {
+            session.CloseAsync();
+        }
     }
 }

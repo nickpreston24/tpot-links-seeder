@@ -1,7 +1,3 @@
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using CodeMechanic.Extensions;
-
 public class TPOTPaperCollection<T>
 {
     private string json;

@@ -181,20 +181,8 @@ public partial class TPOTPaperController : ControllerBase
         {
             batch = neo_papers
         };
-        //
-        // string query = """
-        //
-        // SET n = data[toString(id(n))]
-        // """;
-
-        // string query = """
-        //         WITH $batch as data, [k in keys($batch) | toInteger(k)] as ids
-        //         MATCH (n) WHERE id(n) IN ids      
-        //         UNWIND $batch AS map
-        //         MERGE (paper:Paper {paper} )
-        //         SET papers = map    
-        //     """;
-
+        
+        // https://stackoverflow.com/questions/69200606/merge-with-unwind-issue-neo4j
         string query = """
             WITH $batch AS batch
             UNWIND batch as ind
